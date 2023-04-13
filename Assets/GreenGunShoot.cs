@@ -26,19 +26,27 @@ public class GreenGunShoot : MonoBehaviour
 
     void Start()
     {
-
         laserLine = this.gameObject.AddComponent<LineRenderer>();
+        Vector3 position = new Vector3(100, 100, 100);
+        laserLine.SetPosition(0, position);
+        laserLine.SetPosition(1, position);
+
 
         gunAudio = GetComponent<AudioSource>();
 
-        fpsCam = GetComponentInParent<Camera>();
+        if (transform.parent != null)
+        {
+            fpsCam = GetComponentInParent<Camera>();
+        }
     }
 
 
     void Update()
     {
+       
+
         // Check if the player has pressed the fire button and if enough time has elapsed since they last fired
-        if (Input.GetButtonDown("Fire1") && Time.time > nextFire)
+        if (Input.GetButtonDown("Fire1") && Time.time > nextFire && transform.parent != null)
         {
             // Update the time when our player can fire next
             nextFire = Time.time + fireRate;
@@ -70,7 +78,7 @@ public class GreenGunShoot : MonoBehaviour
 
                 // Get a reference to a health script attached to the collider we hit
                 HealthScript health = hit.collider.GetComponent<HealthScript>();
-                HealthScript ourHealth = GameObject.Find("FirstPersonController").GetComponent<HealthScript>();
+                HealthScript ourHealth = gameObject.transform.root.GetComponent<HealthScript>();
 
                 // If there was a health script attached
                 if (health != null)

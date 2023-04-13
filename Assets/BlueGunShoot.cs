@@ -6,8 +6,8 @@ public class BlueGunShoot : MonoBehaviour
 {
 
     public int gunDamage = 10;
-    public float slowRate = 0.3f;
-    public float fireRate = 0.25f;
+    public float slowTime = 0.3f;
+    public float fireSpeed = 0.25f;
     public float weaponRange = 50f;
     public float hitForce = 100f;
     public Transform gunEnd;
@@ -20,42 +20,41 @@ public class BlueGunShoot : MonoBehaviour
     private float laserLineWidth = 0.05f;
 
     private Color blue = Color.blue;
-    private Color red = Color.red;
-    private Color green = Color.green;
-    private Color white = Color.white;
 
     void Start()
     {
 
         laserLine = this.gameObject.AddComponent<LineRenderer>();
+        Vector3 position = new Vector3(100, 100, 100);
+        laserLine.SetPosition(0, position);
+        laserLine.SetPosition(1, position);
+
 
         gunAudio = GetComponent<AudioSource>();
 
-        fpsCam = GetComponentInParent<Camera>();
+        if (transform.parent != null)
+        {
+            fpsCam = GetComponentInParent<Camera>();
+        }
     }
 
 
     void Update()
     {
-        // Check if the player has pressed the fire button and if enough time has elapsed since they last fired
+
         if (Input.GetButtonDown("Fire1") && Time.time > nextFire)
         {
-            // Update the time when our player can fire next
-            nextFire = Time.time + fireRate;
+            nextFire = Time.time + fireSpeed;
 
-            // Start our ShotEffect coroutine to turn our laser line on and off
             StartCoroutine(ShotEffect());
 
-            // Create a vector at the center of our camera's viewport
             Vector3 rayOrigin = fpsCam.ViewportToWorldPoint(new Vector3(0.5f, 0.5f, 0.0f));
 
-            // Declare a raycast hit to store information about what our raycast has hit
             RaycastHit hit;
-
             laserLine.widthMultiplier = laserLineWidth;
             laserLine.material = new Material(Shader.Find("Sprites/Default"));
             laserLine.startColor = blue;
-            laserLine.endColor = white;
+            laserLine.endColor = blue;
 
 
             // Set the start position for our visual effect for our laser to the position of gunEnd
@@ -81,7 +80,7 @@ public class BlueGunShoot : MonoBehaviour
 
                 if (theirMovement != null)
                 {
-                    theirMovement.slow(slowRate);
+                    StartCoroutine(theirMovement.slow(slowTime));
                 }
 
                 // Check if the object we hit has a rigidbody attached

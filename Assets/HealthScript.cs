@@ -1,9 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class HealthScript : MonoBehaviour
 {
+
+    public Image healthBar;
     [SerializeField] private int maxHealth;
     [SerializeField] private int minHealth;
     [SerializeField] private int currHealth;
@@ -21,9 +24,26 @@ public class HealthScript : MonoBehaviour
         {
             Destroy(gameObject);
         }
+        if (healthBar != null)
+        {
+            healthBar.fillAmount = currHealth / maxHealth;
+        }
     }
     public void Heal(int healAmount)
     {
-        currHealth += Mathf.Clamp(healAmount, minHealth, maxHealth);
+        int potentialHealth = currHealth + healAmount;
+        if(potentialHealth <= maxHealth)
+        {
+            currHealth =potentialHealth;
+        }
+        if(potentialHealth > maxHealth)
+        {
+            currHealth = maxHealth;
+        }
+        if (healthBar != null)
+        {
+            healthBar.fillAmount = currHealth / maxHealth;
+        }
+
     }
 }

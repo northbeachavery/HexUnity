@@ -2,23 +2,32 @@ using UnityEngine;
 using System.Collections;
 
 
-public class RaycastShoot : MonoBehaviour
+public class GrappleShoot : MonoBehaviour
 {
 
-    public int gunDamage = 1;                                            
-    public float fireSpeed = 0.25f;                                        
-    public float weaponRange = 50f;                                        
-    public float hitForce = 100f;                                        
-    public Transform gunEnd;                                           
+    public int gunDamage = 10;
+    public float slowTime = 0.3f;
+    public float fireSpeed = 0.25f;
+    public float weaponRange = 50f;
+    public float hitForce = 100f;
+    public Transform gunEnd;
 
-    private Camera fpsCam;                                                
-    private WaitForSeconds shotDuration = new WaitForSeconds(0.02f);    
-    private AudioSource gunAudio;                                       
-    private LineRenderer laserLine;                                        
-    private float nextFire;                                                
+    private bool canFire = true;
+    private Camera fpsCam;
+    private WaitForSeconds shotDuration = new WaitForSeconds(0.05f);
+    private AudioSource gunAudio;
+    private LineRenderer laserLine;
+    private float nextFire;
     private float laserLineWidth = 0.05f;
 
-    private Color black = Color.black;
+    private Color blue = Color.blue;
+    private Color red = Color.red;
+    private Color green = Color.green;
+    private Color white = Color.white;
+    private Color yellow = Color.yellow;
+
+    private FirstPersonController playerController;
+    private Vector3 grapplePoint;
 
     void Start()
     {
@@ -27,7 +36,7 @@ public class RaycastShoot : MonoBehaviour
         Vector3 position = new Vector3(100, 100, 100);
         laserLine.SetPosition(0, position);
         laserLine.SetPosition(1, position);
-
+        playerController = gameObject.transform.root.GetComponent<FirstPersonController>();
         gunAudio = GetComponent<AudioSource>();
 
         if (transform.parent != null)
@@ -39,20 +48,18 @@ public class RaycastShoot : MonoBehaviour
 
     void Update()
     {
-
-        if (Input.GetButtonDown("Fire1") && Time.time > nextFire && transform.parent != null)
+        if (Input.GetButtonDown("Fire1") && Time.time > nextFire && canFire)
         {
             nextFire = Time.time + fireSpeed;
-
-            StartCoroutine(ShotEffect());
+           
 
             Vector3 rayOrigin = fpsCam.ViewportToWorldPoint(new Vector3(0.5f, 0.5f, 0.0f));
 
             RaycastHit hit;
             laserLine.widthMultiplier = laserLineWidth;
             laserLine.material = new Material(Shader.Find("Sprites/Default"));
-            laserLine.startColor = black;
-            laserLine.endColor = black;
+            laserLine.startColor = yellow;
+            laserLine.endColor = yellow;
 
 
             // Set the start position for our visual effect for our laser to the position of gunEnd
@@ -63,32 +70,49 @@ public class RaycastShoot : MonoBehaviour
             {
                 // Set the end position for our laser line 
                 laserLine.SetPosition(1, hit.point);
-             
+
 
                 // Get a reference to a health script attached to the collider we hit
                 HealthScript health = hit.collider.GetComponent<HealthScript>();
+                Launch hitPlayer = hit.collider.GetComponent<Launch>();
 
                 // If there was a health script attached
                 if (health != null)
                 {
-                    // Call the damage function of that script, passing in our gunDamage variable
                     health.Damage(gunDamage);
                 }
-
-                // Check if the object we hit has a rigidbody attached
-                if (hit.rigidbody != null)
+                //if we hit a player
+                if (hitPlayer != null)
                 {
-                    // Add force to the rigidbody we hit, in the direction from which it was hit
-                    hit.rigidbody.AddForce(-hit.normal * hitForce);
+                    StartCoroutine(ShotEffect());
+                    hitPlayer.Launched(transform.position);
                 }
+                //otherwise we hit terrain
+                else
+                {
+                    grapplePoint = hit.point;
+                    canFire = false;
+                    // Attach the player to the grapple point
+                    StartCoroutine(playerController.Grapple(grapplePoint, laserLine, gunEnd));
+                    
+                    canFire = true;
+
+                }
+
+
             }
             else
             {
                 // If we did not hit anything, set the end of the line to a position directly in front of the camera at the distance of weaponRange
+                laserLine.SetPosition(0, gunEnd.position);
+      
                 laserLine.SetPosition(1, rayOrigin + (fpsCam.transform.forward * weaponRange));
+                StartCoroutine(ShotEffect());
+
             }
         }
     }
+    
 
 
     private IEnumerator ShotEffect()
@@ -97,7 +121,6 @@ public class RaycastShoot : MonoBehaviour
 
         laserLine.enabled = true;
 
-        //Wait for shotDuration seconds
         yield return shotDuration;
 
         laserLine.enabled = false;

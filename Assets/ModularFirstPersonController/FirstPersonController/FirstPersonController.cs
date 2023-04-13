@@ -24,16 +24,12 @@ public class FirstPersonController : MonoBehaviour
     public float mouseSensitivity = 2f;
     public float maxLookAngle = 50f;
 
-    // Crosshair
     public bool lockCursor = true;
-    public bool crosshair = true;
-    public Sprite crosshairImage;
-    public Color crosshairColor = Color.white;
+ 
 
     // Internal Variables
     private float yaw = 0.0f;
     private float pitch = 0.0f;
-    private Image crosshairObject;
 
     #region Camera Zoom Variables
 
@@ -53,7 +49,7 @@ public class FirstPersonController : MonoBehaviour
 
     public bool playerCanMove = true;
     public float walkSpeed = 5f;
-    public float maxVelocityChange = 10f;
+    public float maxVelocityChange = 100f;
 
     // Internal Variables
     private bool isWalking = false;
@@ -61,7 +57,7 @@ public class FirstPersonController : MonoBehaviour
     #region Sprint
 
     public bool enableSprint = true;
-    public bool unlimitedSprint = false;
+    public bool unlimitedSprint = true;
     public KeyCode sprintKey = KeyCode.LeftShift;
     public float sprintSpeed = 7f;
     public float sprintDuration = 5f;
@@ -69,20 +65,11 @@ public class FirstPersonController : MonoBehaviour
     public float sprintFOV = 80f;
     public float sprintFOVStepTime = 10f;
 
-    // Sprint Bar
-    public bool useSprintBar = true;
-    public bool hideBarWhenFull = true;
-    public Image sprintBarBG;
-    public Image sprintBar;
-    public float sprintBarWidthPercent = .3f;
-    public float sprintBarHeightPercent = .015f;
+  
 
     // Internal Variables
-    private CanvasGroup sprintBarCG;
     private bool isSprinting = false;
     private float sprintRemaining;
-    private float sprintBarWidth;
-    private float sprintBarHeight;
     private bool isSprintCooldown = false;
     private float sprintCooldownReset;
 
@@ -103,7 +90,7 @@ public class FirstPersonController : MonoBehaviour
 
     public bool enableCrouch = true;
     public bool holdToCrouch = true;
-    public KeyCode crouchKey = KeyCode.LeftControl;
+    public KeyCode crouchKey = KeyCode.Q;
     public float crouchHeight = .75f;
     public float speedReduction = .5f;
 
@@ -111,7 +98,6 @@ public class FirstPersonController : MonoBehaviour
     private bool isCrouched = false;
     private Vector3 originalScale;
 
-    #endregion
     #endregion
 
     #region Head Bob
@@ -130,8 +116,6 @@ public class FirstPersonController : MonoBehaviour
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();
-
-        crosshairObject = GetComponentInChildren<Image>();
 
         // Set internal variables
         playerCamera.fieldOfView = fov;
@@ -152,46 +136,9 @@ public class FirstPersonController : MonoBehaviour
             Cursor.lockState = CursorLockMode.Locked;
         }
 
-        if(crosshair)
-        {
-            crosshairObject.sprite = crosshairImage;
-            crosshairObject.color = crosshairColor;
-        }
-        else
-        {
-            crosshairObject.gameObject.SetActive(false);
-        }
+       
 
-        #region Sprint Bar
-
-        sprintBarCG = GetComponentInChildren<CanvasGroup>();
-
-        if(useSprintBar)
-        {
-            sprintBarBG.gameObject.SetActive(true);
-            sprintBar.gameObject.SetActive(true);
-
-            float screenWidth = Screen.width;
-            float screenHeight = Screen.height;
-
-            sprintBarWidth = screenWidth * sprintBarWidthPercent;
-            sprintBarHeight = screenHeight * sprintBarHeightPercent;
-
-            sprintBarBG.rectTransform.sizeDelta = new Vector3(sprintBarWidth, sprintBarHeight, 0f);
-            sprintBar.rectTransform.sizeDelta = new Vector3(sprintBarWidth - 2, sprintBarHeight - 2, 0f);
-
-            if(hideBarWhenFull)
-            {
-                sprintBarCG.alpha = 0;
-            }
-        }
-        else
-        {
-            sprintBarBG.gameObject.SetActive(false);
-            sprintBar.gameObject.SetActive(false);
-        }
-
-        #endregion
+       
     }
 
     float camRotation;
@@ -309,12 +256,7 @@ public class FirstPersonController : MonoBehaviour
                 sprintCooldown = sprintCooldownReset;
             }
 
-            // Handles sprintBar 
-            if(useSprintBar && !unlimitedSprint)
-            {
-                float sprintRemainingPercent = sprintRemaining / sprintDuration;
-                sprintBar.transform.localScale = new Vector3(sprintRemainingPercent, 1f, 1f);
-            }
+           
         }
 
         #endregion
@@ -403,10 +345,7 @@ public class FirstPersonController : MonoBehaviour
                         Crouch();
                     }
 
-                    if (hideBarWhenFull && !unlimitedSprint)
-                    {
-                        sprintBarCG.alpha += 5 * Time.deltaTime;
-                    }
+                    
                 }
 
                 rb.AddForce(velocityChange, ForceMode.VelocityChange);
@@ -416,10 +355,7 @@ public class FirstPersonController : MonoBehaviour
             {
                 isSprinting = false;
 
-                if (hideBarWhenFull && sprintRemaining == sprintDuration)
-                {
-                    sprintBarCG.alpha -= 3 * Time.deltaTime;
-                }
+                
 
                 targetVelocity = transform.TransformDirection(targetVelocity) * walkSpeed;
 
@@ -522,11 +458,59 @@ public class FirstPersonController : MonoBehaviour
             joint.localPosition = new Vector3(Mathf.Lerp(joint.localPosition.x, jointOriginalPos.x, Time.deltaTime * bobSpeed), Mathf.Lerp(joint.localPosition.y, jointOriginalPos.y, Time.deltaTime * bobSpeed), Mathf.Lerp(joint.localPosition.z, jointOriginalPos.z, Time.deltaTime * bobSpeed));
         }
     }
-    public void slow(float slowAmount)
+
+    //Used for Blue gun
+    public IEnumerator slow(float time)
     {
-        walkSpeed *= slowAmount;
-        sprintSpeed *= slowAmount;
+        enableSprint = false;
+        yield return new WaitForSeconds(time);
+        enableSprint = true;
     }
+
+    //used for grapple gun
+    public IEnumerator Grapple(Vector3 grapplePoint, LineRenderer laserLine, Transform gunEnd)
+    {
+        Vector3 playerPosition = transform.position;
+        Vector3 grappleDirection = grapplePoint - playerPosition;
+
+        float grappleDistance = grappleDirection.magnitude;
+        
+        laserLine.SetPosition(0, gunEnd.position);
+        laserLine.SetPosition(1, grapplePoint);
+        laserLine.enabled = true;
+
+        float grappleSpeed = 0.3f;
+        bool reachedGrapplePoint = false;
+
+        while (!reachedGrapplePoint)
+        {
+            // Calculate the distance between the player and the grapple point
+            grappleDistance = Vector3.Distance(transform.position, grapplePoint);
+
+            // If the player is close enough to the grapple point, set reachedGrapplePoint to true
+            if (grappleDistance < 0.5f)
+            {
+                reachedGrapplePoint = true;
+                laserLine.enabled = false;
+            }
+
+            // Move the player towards the grapple point at the given speed
+            playerPosition += grappleDirection * grappleSpeed * Time.deltaTime;
+            transform.position = playerPosition;
+            grappleSpeed += 0.002f;
+            if(grappleSpeed > 5)
+            {
+                grappleSpeed = 5;
+            }
+            laserLine.SetPosition(0, gunEnd.position);
+            laserLine.SetPosition(1, grapplePoint);
+
+            // Wait for the next frame
+            yield return null;
+        }
+       
+    }
+   
 }
 
 
@@ -555,7 +539,7 @@ public class FirstPersonController : MonoBehaviour
         GUILayout.Label("version 1.0.1", new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Normal, fontSize = 12 });
         EditorGUILayout.Space();
 
-        #region Camera Setup
+#region Camera Setup
 
         EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
         GUILayout.Label("Camera Setup", new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold, fontSize = 13 }, GUILayout.ExpandWidth(true));
@@ -573,26 +557,12 @@ public class FirstPersonController : MonoBehaviour
 
         fpc.lockCursor = EditorGUILayout.ToggleLeft(new GUIContent("Lock and Hide Cursor", "Turns off the cursor visibility and locks it to the middle of the screen."), fpc.lockCursor);
 
-        fpc.crosshair = EditorGUILayout.ToggleLeft(new GUIContent("Auto Crosshair", "Determines if the basic crosshair will be turned on, and sets is to the center of the screen."), fpc.crosshair);
 
-        // Only displays crosshair options if crosshair is enabled
-        if(fpc.crosshair) 
-        { 
-            EditorGUI.indentLevel++; 
-            EditorGUILayout.BeginHorizontal(); 
-            EditorGUILayout.PrefixLabel(new GUIContent("Crosshair Image", "Sprite to use as the crosshair.")); 
-            fpc.crosshairImage = (Sprite)EditorGUILayout.ObjectField(fpc.crosshairImage, typeof(Sprite), false);
-            EditorGUILayout.EndHorizontal();
-
-            EditorGUILayout.BeginHorizontal();
-            fpc.crosshairColor = EditorGUILayout.ColorField(new GUIContent("Crosshair Color", "Determines the color of the crosshair."), fpc.crosshairColor);
-            EditorGUILayout.EndHorizontal();
-            EditorGUI.indentLevel--; 
-        }
+       
 
         EditorGUILayout.Space();
 
-        #region Camera Zoom Setup
+#region Camera Zoom Setup
 
         GUILayout.Label("Zoom", new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleLeft, fontStyle = FontStyle.Bold, fontSize = 13 }, GUILayout.ExpandWidth(true));
 
@@ -605,11 +575,11 @@ public class FirstPersonController : MonoBehaviour
         fpc.zoomStepTime = EditorGUILayout.Slider(new GUIContent("Step Time", "Determines how fast the FOV transitions while zooming in."), fpc.zoomStepTime, .1f, 10f);
         GUI.enabled = true;
 
-        #endregion
+#endregion
 
-        #endregion
+#endregion
 
-        #region Movement Setup
+#region Movement Setup
 
         EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
         GUILayout.Label("Movement Setup", new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold, fontSize = 13 }, GUILayout.ExpandWidth(true));
@@ -623,7 +593,7 @@ public class FirstPersonController : MonoBehaviour
 
         EditorGUILayout.Space();
 
-        #region Sprint
+#region Sprint
 
         GUILayout.Label("Sprint", new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleLeft, fontStyle = FontStyle.Bold, fontSize = 13 }, GUILayout.ExpandWidth(true));
 
@@ -642,44 +612,15 @@ public class FirstPersonController : MonoBehaviour
         fpc.sprintFOV = EditorGUILayout.Slider(new GUIContent("Sprint FOV", "Determines the field of view the camera changes to while sprinting."), fpc.sprintFOV, fpc.fov, 179f);
         fpc.sprintFOVStepTime = EditorGUILayout.Slider(new GUIContent("Step Time", "Determines how fast the FOV transitions while sprinting."), fpc.sprintFOVStepTime, .1f, 20f);
 
-        fpc.useSprintBar = EditorGUILayout.ToggleLeft(new GUIContent("Use Sprint Bar", "Determines if the default sprint bar will appear on screen."), fpc.useSprintBar);
 
-        // Only displays sprint bar options if sprint bar is enabled
-        if(fpc.useSprintBar)
-        {
-            EditorGUI.indentLevel++;
-
-            EditorGUILayout.BeginHorizontal();
-            fpc.hideBarWhenFull = EditorGUILayout.ToggleLeft(new GUIContent("Hide Full Bar", "Hides the sprint bar when sprint duration is full, and fades the bar in when sprinting. Disabling this will leave the bar on screen at all times when the sprint bar is enabled."), fpc.hideBarWhenFull);
-            EditorGUILayout.EndHorizontal();
-
-            EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.PrefixLabel(new GUIContent("Bar BG", "Object to be used as sprint bar background."));
-            fpc.sprintBarBG = (Image)EditorGUILayout.ObjectField(fpc.sprintBarBG, typeof(Image), true);
-            EditorGUILayout.EndHorizontal();
-
-            EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.PrefixLabel(new GUIContent("Bar", "Object to be used as sprint bar foreground."));
-            fpc.sprintBar = (Image)EditorGUILayout.ObjectField(fpc.sprintBar, typeof(Image), true);
-            EditorGUILayout.EndHorizontal();
-
-
-            EditorGUILayout.BeginHorizontal();
-            fpc.sprintBarWidthPercent = EditorGUILayout.Slider(new GUIContent("Bar Width", "Determines the width of the sprint bar."), fpc.sprintBarWidthPercent, .1f, .5f);
-            EditorGUILayout.EndHorizontal();
-
-            EditorGUILayout.BeginHorizontal();
-            fpc.sprintBarHeightPercent = EditorGUILayout.Slider(new GUIContent("Bar Height", "Determines the height of the sprint bar."), fpc.sprintBarHeightPercent, .001f, .025f);
-            EditorGUILayout.EndHorizontal();
-            EditorGUI.indentLevel--;
-        }
+        
         GUI.enabled = true;
 
         EditorGUILayout.Space();
 
-        #endregion
+#endregion
 
-        #region Jump
+#region Jump
 
         GUILayout.Label("Jump", new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleLeft, fontStyle = FontStyle.Bold, fontSize = 13 }, GUILayout.ExpandWidth(true));
 
@@ -692,9 +633,9 @@ public class FirstPersonController : MonoBehaviour
 
         EditorGUILayout.Space();
 
-        #endregion
+#endregion
 
-        #region Crouch
+#region Crouch
 
         GUILayout.Label("Crouch", new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleLeft, fontStyle = FontStyle.Bold, fontSize = 13 }, GUILayout.ExpandWidth(true));
 
@@ -707,11 +648,11 @@ public class FirstPersonController : MonoBehaviour
         fpc.speedReduction = EditorGUILayout.Slider(new GUIContent("Speed Reduction", "Determines the percent 'Walk Speed' is reduced by. 1 being no reduction, and .5 being half."), fpc.speedReduction, .1f, 1);
         GUI.enabled = true;
 
-        #endregion
+#endregion
 
-        #endregion
+#endregion
 
-        #region Head Bob
+#region Head Bob
 
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
@@ -727,7 +668,7 @@ public class FirstPersonController : MonoBehaviour
         fpc.bobAmount = EditorGUILayout.Vector3Field(new GUIContent("Bob Amount", "Determines the amount the joint moves in both directions on every axes."), fpc.bobAmount);
         GUI.enabled = true;
 
-        #endregion
+#endregion
 
         //Sets any changes from the prefab
         if(GUI.changed)
@@ -739,5 +680,5 @@ public class FirstPersonController : MonoBehaviour
     }
 
 }
-
 #endif
+#endregion

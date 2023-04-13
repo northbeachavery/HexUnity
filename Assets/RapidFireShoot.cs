@@ -2,29 +2,29 @@ using UnityEngine;
 using System.Collections;
 
 
-public class RaycastShoot : MonoBehaviour
+public class RapidFireShoot : MonoBehaviour
 {
 
-    public int gunDamage = 1;                                            
-    public float fireSpeed = 0.25f;                                        
-    public float weaponRange = 50f;                                        
-    public float hitForce = 100f;                                        
-    public Transform gunEnd;                                           
+    public int gunDamage = 4;
+    public float fireSpeed = 0.1f;
+    public float weaponRange = 75f;
+    public float hitForce = 20f;
+    public Transform gunEnd;
 
-    private Camera fpsCam;                                                
-    private WaitForSeconds shotDuration = new WaitForSeconds(0.02f);    
-    private AudioSource gunAudio;                                       
-    private LineRenderer laserLine;                                        
-    private float nextFire;                                                
+    private Camera fpsCam;
+    private WaitForSeconds shotDuration = new WaitForSeconds(0.02f);
+    private AudioSource gunAudio;
+    private LineRenderer laserLine;
+    private float nextFire;
     private float laserLineWidth = 0.05f;
 
-    private Color black = Color.black;
+    private Color red = Color.red;
 
     void Start()
     {
 
         laserLine = this.gameObject.AddComponent<LineRenderer>();
-        Vector3 position = new Vector3(100, 100, 100);
+        Vector3 position = new Vector3(-100, -100, -100);
         laserLine.SetPosition(0, position);
         laserLine.SetPosition(1, position);
 
@@ -51,11 +51,11 @@ public class RaycastShoot : MonoBehaviour
             RaycastHit hit;
             laserLine.widthMultiplier = laserLineWidth;
             laserLine.material = new Material(Shader.Find("Sprites/Default"));
-            laserLine.startColor = black;
-            laserLine.endColor = black;
+            laserLine.startColor = red;
+            laserLine.endColor = red;
 
 
-            // Set the start position for our visual effect for our laser to the position of gunEnd
+       
             laserLine.SetPosition(0, gunEnd.position);
 
             // Check if our raycast has hit anything
@@ -63,7 +63,7 @@ public class RaycastShoot : MonoBehaviour
             {
                 // Set the end position for our laser line 
                 laserLine.SetPosition(1, hit.point);
-             
+
 
                 // Get a reference to a health script attached to the collider we hit
                 HealthScript health = hit.collider.GetComponent<HealthScript>();
@@ -71,7 +71,6 @@ public class RaycastShoot : MonoBehaviour
                 // If there was a health script attached
                 if (health != null)
                 {
-                    // Call the damage function of that script, passing in our gunDamage variable
                     health.Damage(gunDamage);
                 }
 
@@ -97,7 +96,6 @@ public class RaycastShoot : MonoBehaviour
 
         laserLine.enabled = true;
 
-        //Wait for shotDuration seconds
         yield return shotDuration;
 
         laserLine.enabled = false;
